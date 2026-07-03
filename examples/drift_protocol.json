@@ -1,0 +1,5 @@
+{
+  "endpoint": "EFFICACY-NEURO-09",
+  "required_samples": 100,
+  "target_effect_size": 0.5
+}

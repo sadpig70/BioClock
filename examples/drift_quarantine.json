@@ -1,0 +1,20 @@
+{
+  "organism_id": "ORG-BIO-0042",
+  "stages": [
+    {
+      "duration_days": 7,
+      "name": "intake",
+      "observation_passed": true
+    },
+    {
+      "duration_days": 14,
+      "name": "observation",
+      "observation_passed": false
+    },
+    {
+      "duration_days": 3,
+      "name": "release",
+      "observation_passed": false
+    }
+  ]
+}
