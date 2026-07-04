@@ -77,6 +77,14 @@ class TestTrackDriftDeterminism(unittest.TestCase):
         report = track_drift(protocol, evidence)
         self.assertEqual(report["drift_severity"], "severe")
         self.assertEqual(report["sample_gap"], 40)
+        self.assertTrue(report["freshness_expired"])
+
+    def test_freshness_gate_expires_old_evidence(self):
+        evidence = copy.deepcopy(VALID_EVIDENCE)
+        evidence["data_freshness_days"] = 31
+        report = track_drift(VALID_PROTOCOL, evidence)
+        self.assertTrue(report["freshness_expired"])
+        self.assertFalse(report["protocol_compliant"])
 
     def test_deterministic_repeated_run(self):
         report_a = _drift(0.2)
@@ -93,17 +101,26 @@ class TestCertifyBioClock(unittest.TestCase):
         self.assertTrue(cert["bio_clock_valid"])
 
     def test_revoked_on_severe_drift(self):
-        drift_report = track_drift(DRIFT_PROTOCOL, DRIFT_EVIDENCE)
-        cert = certify_bio_clock(drift_report, DRIFT_QUARANTINE)
+        evidence = copy.deepcopy(DRIFT_EVIDENCE)
+        evidence["data_freshness_days"] = 3
+        drift_report = track_drift(DRIFT_PROTOCOL, evidence)
+        cert = certify_bio_clock(drift_report, VALID_QUARANTINE)
         self.assertEqual(cert["certification"], "revoked")
         self.assertFalse(cert["bio_clock_valid"])
 
-    def test_revoked_on_failed_quarantine_with_none_drift(self):
+    def test_blocked_on_failed_quarantine_with_none_drift(self):
         drift_report = track_drift(VALID_PROTOCOL, VALID_EVIDENCE)
         cert = certify_bio_clock(drift_report, DRIFT_QUARANTINE)
-        # none drift but quarantine incomplete -> revoked
-        self.assertEqual(cert["certification"], "revoked")
+        self.assertEqual(cert["certification"], "blocked")
         self.assertFalse(cert["quarantine_complete"])
+        self.assertFalse(cert["bio_clock_valid"])
+
+    def test_expired_on_stale_evidence(self):
+        evidence = copy.deepcopy(VALID_EVIDENCE)
+        evidence["data_freshness_days"] = 31
+        drift_report = track_drift(VALID_PROTOCOL, evidence)
+        cert = certify_bio_clock(drift_report, VALID_QUARANTINE)
+        self.assertEqual(cert["certification"], "expired")
         self.assertFalse(cert["bio_clock_valid"])
 
     def test_conditional_on_moderate_drift(self):
@@ -211,7 +228,7 @@ class TestCLI(unittest.TestCase):
                 text=True,
             )
             cert = json.loads(cert_out)
-            self.assertEqual(cert["certification"], "revoked")
+            self.assertEqual(cert["certification"], "blocked")
             self.assertEqual(cert["drift_severity"], "severe")
 
     def test_cli_report(self):

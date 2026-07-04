@@ -32,7 +32,7 @@ def cmd_sample(args):
 def cmd_track(args):
     protocol = _load_json(args.protocol)
     evidence = _load_json(args.evidence)
-    result = track_drift(protocol, evidence)
+    result = track_drift(protocol, evidence, args.max_freshness_days)
     _dump_json(result, args.out)
     return 0
 
@@ -67,6 +67,7 @@ def build_parser():
     track = sub.add_parser("track", help="measure evidence drift for one protocol")
     track.add_argument("--protocol", required=True)
     track.add_argument("--evidence", required=True)
+    track.add_argument("--max-freshness-days", type=float, default=30)
     track.add_argument("--out")
     track.set_defaults(func=cmd_track)
 
